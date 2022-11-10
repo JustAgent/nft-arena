@@ -119,6 +119,22 @@ contract Arena is ERC721Enumerable, Ownable{
 
   }
 
+  function setStats(
+    uint16 id,
+    Race race,
+    uint24 hp,
+    uint24 stamina,
+    uint24 damage,
+    uint24 armor,
+    uint24 agility, 
+    uint8 speed)
+    public
+    onlyOwner 
+    returns (bool) 
+  {
+    fighters[id];
+  }
+
   function changeMintableFights() public onlyOwner {
     mintableFights = !mintableFights;
   }
