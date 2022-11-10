@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.12;
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./VRFv2Consumer.sol";
 
 contract Arena is ERC721Enumerable, Ownable{
@@ -97,8 +98,24 @@ contract Arena is ERC721Enumerable, Ownable{
     uint mintCost = baseMintCost + baseMintCost.mul(totalSupply()).div(1000);
     require(arenaCoin.balanceOf(msg.sender) >= mintCost, 'Not enough funds');
     require(arenaCoin.transferFrom(msg.sender, owner(), mintCost), 'Transfer has failed');
-    _mint( _to, totalSupply() + 1);
+    uint16 num = uint16(totalSupply()) + 1;
+    _mint( _to, num );
+    fighters[num] = Fighter(
+      msg.sender,
+      string.concat('Fighter ', Strings.toString(num)),
+      Race.Humans,
+      10, //speed
+      num,
+      10000, //hp
+      10,
+      3000,
+      1600,
+      2000,
+      false,
+      0
+      );
 
+    return true;
 
   }
 
