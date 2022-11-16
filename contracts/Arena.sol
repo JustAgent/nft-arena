@@ -21,14 +21,7 @@ contract Arena is ERC721, Ownable{
   uint16 constant MAX_LEGENDARY = 1000;
   uint16 totalSupply;
   bool mintableFights;
-  // MAX STATS:
-  // - [ ] HP 40.000 / 100.000
-  // - [ ] DAMAGE 15.000 / 40 000
-  // - [ ] ARMOR 8000 / 15000
-  // - [ ] AGILITY 20 / 30
-  // - [ ] Speed 100 / 100
-  // - [ ] ENERGY 10 / 1
-
+  
   struct Fighter {
     address owner;
     string name;
@@ -45,6 +38,7 @@ contract Arena is ERC721, Ownable{
   }
 
   mapping (uint16 => Fighter) fighters;
+  mapping (uint256 => uint16) public requestsToId;
   enum Race { Orcs, Dragons, Elves, Humans}
 
   modifier onlyRNG() {
@@ -107,6 +101,10 @@ contract Arena is ERC721, Ownable{
     require(arenaCoin.transferFrom(msg.sender, owner(), mintCost), 'Transfer has failed');
     uint16 num = uint16(totalSupply) + 1;
     _mint( _to, num );
+
+    uint256 requestId = vrf.requestRandomWords();
+    requestsToId[requestId] = num;
+
     fighters[num] = Fighter(
       msg.sender,
       string.concat('Fighter ', Strings.toString(num)),
@@ -146,6 +144,10 @@ contract Arena is ERC721, Ownable{
     
     
 
+  }
+
+  function getRequestId(uint256 _requestId) public view returns(uint16) {
+    return requestsToId[_requestId];
   }
 
   function toggleMintableFights() public onlyOwner {

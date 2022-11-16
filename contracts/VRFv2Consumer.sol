@@ -63,6 +63,12 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
      * HARDCODED FOR GOERLI
      * COORDINATOR: 0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D
      */
+
+    modifier onlyArena() {
+        require(msg.sender == address(arena));
+        _;
+    }
+
     constructor(uint64 subscriptionId)
         VRFConsumerBaseV2(0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D)
         ConfirmedOwner(msg.sender)
@@ -77,7 +83,7 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
     }
 
     // Assumes the subscription is funded sufficiently.
-    function requestRandomWords() external onlyOwner returns (uint256 requestId) {
+    function requestRandomWords() external onlyArena returns (uint256 requestId) {
         // Will revert if subscription is not set and funded.
         requestId = COORDINATOR.requestRandomWords(
             keyHash,
@@ -97,7 +103,8 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
         require(s_requests[_requestId].exists, 'request not found');
         s_requests[_requestId].fulfilled = true;
         s_requests[_requestId].randomWords = _randomWords;
-        arena.setStats(_randomWords[0]);
+        uint16 id = arena.getRequestId(_requestId);
+        arena.setStats(_randomWords[0], id);  // ADD ID SOMEHOW || MAYBE REQUEST ID?
         emit RequestFulfilled(_requestId, _randomWords);
     }
 
