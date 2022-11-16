@@ -22,7 +22,8 @@ import "./Arena.sol";
 
 contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
     event RequestSent(uint256 requestId, uint32 numWords);
-    event RequestFulfilled(uint256 requestId, uint256[] randomWords);
+    event RequestFulfilled(uint256 requestId, uint256[] randomWords, uint16 id);
+    event RequestFailed(uint256 requestId, uint256[] randomWords, uint16 id);
 
     struct RequestStatus {
         bool fulfilled; // whether the request has been successfully fulfilled
@@ -104,8 +105,13 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
         s_requests[_requestId].fulfilled = true;
         s_requests[_requestId].randomWords = _randomWords;
         uint16 id = arena.getRequestId(_requestId);
-        arena.setStats(_randomWords[0], id);  // ADD ID SOMEHOW || MAYBE REQUEST ID?
-        emit RequestFulfilled(_requestId, _randomWords);
+        bool res = arena.setStats(_randomWords[0], id);  // ADD ID SOMEHOW || MAYBE REQUEST ID?
+        if (res) {
+            emit RequestFulfilled(_requestId, _randomWords, id);
+        }
+        else {
+            emit RequestFailed(_requestId, _randomWords, id);
+        }
     }
 
     function getRequestStatus(uint256 _requestId) external view returns (bool fulfilled, uint256[] memory randomWords) {

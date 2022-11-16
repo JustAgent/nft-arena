@@ -38,7 +38,8 @@ contract Arena is ERC721, Ownable{
   }
 
   mapping (uint16 => Fighter) fighters;
-  mapping (uint256 => uint16) public requestsToId;
+  mapping (uint256 => uint16) requestsToId;
+  
   enum Race { Orcs, Dragons, Elves, Humans}
 
   modifier onlyRNG() {
@@ -141,7 +142,10 @@ contract Arena is ERC721, Ownable{
     fighters[id].speed = uint8( _randomWords % 100);
     fighters[id].race = Race((_randomWords / 1000000000000000) / 100 % 4);
 
+    // uint256 power = 
     
+    //emit
+    return true;
     
 
   }
