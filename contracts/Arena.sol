@@ -103,7 +103,7 @@ contract Arena is ERC721, Ownable{
     uint16 num = uint16(totalSupply) + 1;
     _mint( _to, num );
 
-    uint256 requestId = vrf.requestRandomWords();
+    uint256 requestId = vrf.requestRandomWords(); // comment when debug
     requestsToId[requestId] = num;
 
     fighters[num] = Fighter(
@@ -142,7 +142,13 @@ contract Arena is ERC721, Ownable{
     fighters[id].speed = uint8( _randomWords % 100);
     fighters[id].race = Race((_randomWords / 1000000000000000) / 100 % 4);
 
-    // uint256 power = 
+  // 1 HP + 1.5 ARMOR + 1000 AGILITY + 1 DAMAGE + 150 SPEED? NOT WORKING CZ OF TYPES
+    // fighters[id].power = 
+    //   (fighters[id].hp) + 
+    //   (fighters[id].armor * 15 / 10) +
+    //   (fighters[id].agility * 1000) +
+    //   (fighters[id].damage) +
+    //   (fighters[id].speed * 150);
     
     //emit
     return true;
