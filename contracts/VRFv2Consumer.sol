@@ -3,8 +3,9 @@
 pragma solidity ^0.8.7;
 
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-import '@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol';
-import '@chainlink/contracts/src/v0.8/ConfirmedOwner.sol';
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
+import "./Arena.sol";
 
 /**
  * Request testnet LINK and ETH here: https://faucets.chain.link/
@@ -16,6 +17,8 @@ import '@chainlink/contracts/src/v0.8/ConfirmedOwner.sol';
  * THIS IS AN EXAMPLE CONTRACT THAT USES UN-AUDITED CODE.
  * DO NOT USE THIS CODE IN PRODUCTION.
  */
+
+
 
 contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
     event RequestSent(uint256 requestId, uint32 numWords);
@@ -35,7 +38,7 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
     // past requests Id.
     uint256[] public requestIds;
     uint256 public lastRequestId;
-
+    Arena arena;
     // The gas lane to use, which specifies the maximum gas price to bump to.
     // For a list of available gas lanes on each network,
     // see https://docs.chain.link/docs/vrf/v2/subscription/supported-networks/#configurations
@@ -54,7 +57,7 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
 
     // For this example, retrieve 2 random values in one request.
     // Cannot exceed VRFCoordinatorV2.MAX_NUM_WORDS.
-    uint32 numWords = 3;
+    uint32 numWords = 1;
 
     /**
      * HARDCODED FOR GOERLI
@@ -66,6 +69,11 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
     {
         COORDINATOR = VRFCoordinatorV2Interface(0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D);
         s_subscriptionId = subscriptionId;
+    }
+
+
+    function setArenaAddress(address _address) public onlyOwner {
+        arena = Arena(_address);
     }
 
     // Assumes the subscription is funded sufficiently.
@@ -89,6 +97,7 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
         require(s_requests[_requestId].exists, 'request not found');
         s_requests[_requestId].fulfilled = true;
         s_requests[_requestId].randomWords = _randomWords;
+        arena.setStats(_randomWords[0]);
         emit RequestFulfilled(_requestId, _randomWords);
     }
 

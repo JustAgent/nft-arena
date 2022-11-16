@@ -3,14 +3,15 @@ pragma solidity ^0.8.12;
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./VRFv2Consumer.sol";
+import "./ArenaCoin.sol";
 
-contract Arena is ERC721Enumerable, Ownable{
+contract Arena is ERC721, Ownable{
   using SafeMath for uint;
   VRFv2Consumer vrf;
   ArenaCoin arenaCoin;
@@ -18,6 +19,7 @@ contract Arena is ERC721Enumerable, Ownable{
   uint256 baseMintCost = 500000; // + 0.1% per minted
   uint16 constant MAX_COUNT  = 30000;
   uint16 constant MAX_LEGENDARY = 1000;
+  uint16 totalSupply;
   bool mintableFights;
   // MAX STATS:
   // - [ ] HP 40.000 / 100.000
@@ -44,6 +46,10 @@ contract Arena is ERC721Enumerable, Ownable{
 
   mapping (uint16 => Fighter) fighters;
   enum Race { Orcs, Dragons, Elves, Humans}
+
+  modifier onlyRNG() {
+    require(msg.sender == vrf.address || msg.sender == owner());
+  }
 
   constructor(string memory _name, string memory _symbol, address _arenaCoin, address _consumer) ERC721(_name, _symbol){
     arenaCoin = ArenaCoin(_arenaCoin);
@@ -94,11 +100,11 @@ contract Arena is ERC721Enumerable, Ownable{
   }
 
   function mintFighter(address _to) public returns (bool) {
-    require(totalSupply() != MAX_COUNT, 'Max supply reached');
-    uint mintCost = baseMintCost + baseMintCost.mul(totalSupply()).div(1000);
+    require(totalSupply != MAX_COUNT, 'Max supply reached');
+    uint mintCost = baseMintCost + baseMintCost.mul(totalSupply).div(1000);
     require(arenaCoin.balanceOf(msg.sender) >= mintCost, 'Not enough funds');
     require(arenaCoin.transferFrom(msg.sender, owner(), mintCost), 'Transfer has failed');
-    uint16 num = uint16(totalSupply()) + 1;
+    uint16 num = uint16(totalSupply) + 1;
     _mint( _to, num );
     fighters[num] = Fighter(
       msg.sender,
@@ -115,19 +121,22 @@ contract Arena is ERC721Enumerable, Ownable{
       0
       );
 
+    totalSupply ++;
     return true;
 
   }
 
   function setStats(
-    uint16 id,
-    Race race,
-    uint24 hp,
-    uint24 stamina,
-    uint24 damage,
-    uint24 armor,
-    uint24 agility, 
-    uint8 speed)
+    uint256 _randomWords
+    // uint16 id,
+    // Race race,
+    // uint24 hp,
+    // uint24 stamina,
+    // uint24 damage,
+    // uint24 armor,
+    // uint24 agility, 
+    // uint8 speed
+    )
     public
     onlyOwner 
     returns (bool) 
@@ -135,61 +144,8 @@ contract Arena is ERC721Enumerable, Ownable{
     fighters[id];
   }
 
-  function changeMintableFights() public onlyOwner {
+  function toggleMintableFights() public onlyRNG {
     mintableFights = !mintableFights;
   }
 }
 
-
-contract ArenaCoin is ERC20, Ownable {
-
-  uint256 maxSupply = 10000000000; // 1.000.000.000.000
-  address arena;
-
-   modifier onlyAdmins() {
-        require(owner() == _msgSender() || arena == _msgSender(), "Ownable: caller is not the owner");
-        _;
-    }
-
-  function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public override returns (bool) {
-        address spender = _msgSender();
-        _spendAllowance(from, spender, amount);
-        _transfer(from, to, amount);
-        return true;
-    }
-
-  function _spendAllowance(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal override {
-        if (msg.sender == arena) {
-          return;
-        }
-        uint256 currentAllowance = allowance(owner, spender);
-        if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= amount, "ERC20: insufficient allowance");
-            unchecked {
-                _approve(owner, spender, currentAllowance - amount);
-            }
-        }
-    }
-
-  constructor(string memory _name, string memory _symbol)  ERC20(_name, _symbol) {
-    mint(msg.sender, 1000000000); // 1.000.000.000 = 1/10
-  }
-
-  function mint(address _to, uint256 _amount) public onlyAdmins {
-    require(totalSupply() + _amount <= maxSupply, "Minted amount is more then maxSupply");
-    _mint(_to, _amount);
-  }
-
-  function setArenaAddress(address _arena) public onlyOwner {
-    arena = _arena;
-  }
-
-}
