@@ -48,7 +48,8 @@ contract Arena is ERC721, Ownable{
   enum Race { Orcs, Dragons, Elves, Humans}
 
   modifier onlyRNG() {
-    require(msg.sender == vrf.address || msg.sender == owner());
+    require(msg.sender == address(vrf) || msg.sender == owner());
+    _;
   }
 
   constructor(string memory _name, string memory _symbol, address _arenaCoin, address _consumer) ERC721(_name, _symbol){
@@ -110,15 +111,15 @@ contract Arena is ERC721, Ownable{
       msg.sender,
       string.concat('Fighter ', Strings.toString(num)),
       Race.Humans,
-      10, //speed
+      0, //speed
       num,
-      10000, //hp
-      10,
-      3000,
-      1600,
-      2000,
-      false,
-      0
+      0, //hp
+      0, //stamina
+      0, //damage
+      0, //armor
+      0, //agility
+      false, //legendary
+      0 //power
       );
 
     totalSupply ++;
@@ -127,24 +128,27 @@ contract Arena is ERC721, Ownable{
   }
 
   function setStats(
-    uint256 _randomWords
-    // uint16 id,
-    // Race race,
-    // uint24 hp,
-    // uint24 stamina,
-    // uint24 damage,
-    // uint24 armor,
-    // uint24 agility, 
-    // uint8 speed
+    uint256 _randomWords,
+    uint16 id
     )
     public
-    onlyOwner 
+    onlyRNG 
     returns (bool) 
   {
-    fighters[id];
+    fighters[id].hp = uint24((_randomWords / 100) % 10000);
+    fighters[id].damage = uint24((_randomWords / 1000000 / 10) % 10000);
+    fighters[id].armor = uint24((_randomWords / 100000000000) % 10000);
+    fighters[id].agility = uint24((_randomWords / 100000000000 / 10000) % 100);
+    fighters[id].stamina = uint24((_randomWords / 1000000) % 10);
+    fighters[id].speed = uint8( _randomWords % 100);
+    fighters[id].race = Race((_randomWords / 1000000000000000) / 100 % 4);
+
+    
+    
+
   }
 
-  function toggleMintableFights() public onlyRNG {
+  function toggleMintableFights() public onlyOwner {
     mintableFights = !mintableFights;
   }
 }
