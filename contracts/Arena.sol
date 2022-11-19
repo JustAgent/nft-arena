@@ -18,6 +18,7 @@ contract Arena is ERC721, Ownable{
   uint256 baseAward = 10000;
   uint256 baseMintCost = 500000; // + 0.1% per minted
   uint256 legendaryMintCost = 2000000; // 2mln
+  uint256 restorationCost;
   uint16 constant MAX_COUNT  = 30000;
   uint16 constant MAX_LEGENDARY = 1000;
   uint16 totalSupply;
@@ -32,6 +33,7 @@ contract Arena is ERC721, Ownable{
     uint16 id;
     uint24 hp;
     uint24 stamina;
+    uint24 maxStamina;
     uint24 damage;
     uint24 armor;
     uint24 agility;
@@ -39,6 +41,7 @@ contract Arena is ERC721, Ownable{
     bool isSelling;
     uint256 price;
     uint256 wins;
+    uint256 lastFight;
     uint256 power; // Может логичнее каждый раз ее считать?
   }
 
@@ -123,6 +126,7 @@ contract Arena is ERC721, Ownable{
       num,
       0, //hp
       0, //stamina
+      0, //MaxStamina
       0, //damage
       0, //armor
       0, //agility
@@ -130,6 +134,7 @@ contract Arena is ERC721, Ownable{
       false, //isSelling
       0, //price
       0,   //wins
+      0, //last fight
       0 //power
       );
 
@@ -147,9 +152,10 @@ contract Arena is ERC721, Ownable{
     returns (bool) 
   {
     fighters[id].hp = uint24((_randomWords / 100) % 10000);
-    fighters[id].damage = uint24((_randomWords / 1000000 / 10) % 10000);
+    fighters[id].damage = uint24((_randomWords / 10000000) % 10000);
     fighters[id].armor = uint24((_randomWords / 100000000000) % 10000);
-    fighters[id].agility = uint24((_randomWords / 100000000000 / 10000) % 100);
+    fighters[id].agility = uint24((_randomWords / 1000000000000000) % 100);
+    fighters[id].maxStamina = uint24((_randomWords / 1000000) % 10);
     fighters[id].stamina = uint24((_randomWords / 1000000) % 10);
     fighters[id].speed = uint8( _randomWords % 100);
     fighters[id].race = Race((_randomWords / 1000000000000000) / 100 % 4);
@@ -197,6 +203,19 @@ contract Arena is ERC721, Ownable{
     fighters[_id].owner = _to;
 
     return true;
+  }
+
+  function restoreStamina(uint16 _id, uint amount) public returns(bool) {
+    require(arenaCoin.balanceOf(msg.sender) >= amount, 'Not enough funds');
+    if (amount == restorationCost) {
+      fighters[_id].stamina = fighters[_id].maxStamina;
+      return true;
+    }
+    if (block.timestamp - fighters[_id].lastFight >= 1 days ) {
+      fighters[_id].stamina = fighters[_id].maxStamina;
+      return true;
+    }
+    return false;
   }
 
   function evolve(uint16 _id) external onlyFighterOwner(_id) {
