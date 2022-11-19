@@ -17,9 +17,11 @@ contract Arena is ERC721, Ownable{
   ArenaCoin arenaCoin;
   uint256 baseAward = 10000;
   uint256 baseMintCost = 500000; // + 0.1% per minted
+  uint256 legendaryMintCost = 2000000; // 2mln
   uint16 constant MAX_COUNT  = 30000;
   uint16 constant MAX_LEGENDARY = 1000;
   uint16 totalSupply;
+  uint16 totalLegendSupply;
   bool mintableFights;
   
   struct Fighter {
@@ -34,6 +36,9 @@ contract Arena is ERC721, Ownable{
     uint24 armor;
     uint24 agility;
     bool legendary;
+    bool isSelling;
+    uint256 price;
+    uint256 wins;
     uint256 power; // Может логичнее каждый раз ее считать?
   }
 
@@ -44,6 +49,11 @@ contract Arena is ERC721, Ownable{
 
   modifier onlyRNG() {
     require(msg.sender == address(vrf) || msg.sender == owner());
+    _;
+  }
+
+  modifier onlyFighterOwner(uint16 _id) {
+    require(fighters[_id].owner == msg.sender, 'Not owner');
     _;
   }
 
@@ -68,7 +78,6 @@ contract Arena is ERC721, Ownable{
 
     return winner.id;
   }
-
 
   function _rewarding(
       Fighter memory _winner,
@@ -118,6 +127,9 @@ contract Arena is ERC721, Ownable{
       0, //armor
       0, //agility
       false, //legendary
+      false, //isSelling
+      0, //price
+      0,   //wins
       0 //power
       );
 
@@ -156,6 +168,47 @@ contract Arena is ERC721, Ownable{
 
   }
 
+  function buyFighter(uint16 _id) external returns(bool) {
+    require(fighters[_id].isSelling, 'Not for sell');
+    require(arenaCoin.balanceOf(msg.sender) >= fighters[_id].price, 'Not enough funds');
+    require(fighters[_id].owner != msg.sender, 'Cant transfer to yourself');
+
+    bool result = arenaCoin.transferFrom(msg.sender, fighters[_id].owner, fighters[_id].price);
+    require(result, "Transfer failed");
+
+    fighters[_id].owner = msg.sender;
+    fighters[_id].isSelling = false;
+
+    return true;
+
+  }
+
+  function sellFighter(uint16 _id, uint256 _price) external onlyFighterOwner(_id) {
+    fighters[_id].price = _price;
+    fighters[_id].isSelling = true;
+  }
+
+  function stopSelling(uint16 _id) external onlyFighterOwner(_id) {
+    fighters[_id].isSelling = false;
+  }
+
+  function transferFighter(uint16 _id, address _to) external returns(bool) {
+    require(fighters[_id].owner == msg.sender, 'Not owner');
+    fighters[_id].owner = _to;
+
+    return true;
+  }
+
+  function evolve(uint16 _id) external onlyFighterOwner(_id) {
+    require(totalLegendSupply < MAX_LEGENDARY, 'Reached max legendary count');
+    require(fighters[_id].wins >= 50, 'Not enough wins');
+    require(arenaCoin.balanceOf(msg.sender) >= legendaryMintCost, 'Not enough funds');
+
+    bool result = arenaCoin.transferFrom(msg.sender, address(this), legendaryMintCost);
+    require(result, 'Transfer failed');
+
+    totalLegendSupply++;
+  }
   function getRequestId(uint256 _requestId) public view returns(uint16) {
     return requestsToId[_requestId];
   }
