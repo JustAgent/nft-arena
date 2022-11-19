@@ -4,12 +4,19 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+interface WETH {
+  function transferFrom(address from, address to, uint amount) external returns (bool);
+}
+
 contract ArenaCoin is ERC20, Ownable {
 
   uint256 maxSupply = 10000000000; // 1.000.000.000.000
   address arena;
+  address wethAdd = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6; // goerli
 
-   modifier onlyAdmins() {
+  WETH weth = WETH(wethAdd);
+
+  modifier onlyAdmins() {
         require(owner() == _msgSender() || arena == _msgSender(), "Ownable: caller is not the owner");
         _;
     }
@@ -49,6 +56,18 @@ contract ArenaCoin is ERC20, Ownable {
   function mint(address _to, uint256 _amount) public onlyAdmins {
     require(totalSupply() + _amount <= maxSupply, "Minted amount is more then maxSupply");
     _mint(_to, _amount);
+  }
+
+  function buyCoinsETH() external payable returns(bool) {
+    require(msg.value != 0, '0 value');
+    _mint(msg.sender, msg.value / (4 * 100000000000)); //msg.value / 10**11
+    return true;
+  }
+
+  function buyCoinsWETH(uint amountAC) external payable returns(bool) {
+    bool res = weth.transferFrom(msg.sender, owner(), amountAC * (4 * 100000000000));
+    require(res, 'Tx failed');
+    return true;
   }
 
   function setArenaAddress(address _arena) public onlyOwner {
