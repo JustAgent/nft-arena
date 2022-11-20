@@ -48,7 +48,6 @@ contract Arena is ERC721, Ownable{
   struct FightParams {
     Fighter fighter1;
     Fighter fighter2;
-    uint randomWord;
   }
 
   mapping (uint256 => uint16) requestsToId;
@@ -79,7 +78,7 @@ contract Arena is ERC721, Ownable{
     
 
     uint256 requestId = vrf.requestRandomWords(); // comment when debug
-    requestsToFight[requestId] = FightParams(fighter1, fighter2, 0);
+    requestsToFight[requestId] = FightParams(fighter1, fighter2);
 
     // Fighter memory winner;
     // uint8 hits;
@@ -93,10 +92,17 @@ contract Arena is ERC721, Ownable{
 
   function _fight(uint requestId, uint randomWord) public {
     require(msg.sender == address(this) || msg.sender == address(vrf), "Not allowed");
-    
-    uint24 hp1 = fighter1.hp;
-    uint24 hp2 = fighter2.hp;
-
+    FightParams memory params = requestsToFight[requestId];
+    Fighter memory fighter1 = params.fighter1;
+    Fighter memory fighter2 = params.fighter2;
+    int24 hp1 = int24(fighter1.hp);
+    int24 hp2 = int24(fighter2.hp);
+    uint8 i = 1;
+    // Starting battle
+    // ORC
+    while (i <= 10 || hp1 > 0 || hp2 > 0) {
+      
+    }
   }
 
   function _rewarding(
