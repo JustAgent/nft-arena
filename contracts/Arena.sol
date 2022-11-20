@@ -80,14 +80,7 @@ contract Arena is ERC721, Ownable{
     uint256 requestId = vrf.requestRandomWords(); // comment when debug
     requestsToFight[requestId] = FightParams(fighter1, fighter2);
 
-    // Fighter memory winner;
-    // uint8 hits;
-    // uint power1; // winner
-    // uint power2;
-    // _rewarding(winner, power1, power2, hits);
-
-
-    // return winner.id;
+  
   }
 
   function _fight(uint requestId, uint randomWord) public {
@@ -106,7 +99,7 @@ contract Arena is ERC721, Ownable{
     int hp1 = faster.hp;
     int hp2 = slower.hp;
     uint16 WINNER;
-    uint8 i = 1;
+    uint16 LOSER;
     // Starting battle
     // ORCs
     if (faster.race == Race.Orcs) {
@@ -129,8 +122,9 @@ contract Arena is ERC721, Ownable{
       int damage = int(slower.damage * k / 10 * agl2) - int24(faster.armor);
       hp1 -= damage;
     }
-    // 123456789 123456 789123 456789
+    
     // Main Fight
+    uint8 i = 1;
     while (i <= 10 || hp1 > 0 || hp2 > 0) {
       //Step 1
       uint k = (randomWord / 10**(i * 6)) % 10 + 4;
@@ -144,10 +138,11 @@ contract Arena is ERC721, Ownable{
       // Check for winner
       if (hp2 <= 0) {
         WINNER = faster.id;
+        LOSER = slower.id;
         break;
       }
+
       //Step 2
-      // 123456 123456 123456 123456 123456 123456
       uint k2 = (randomWord / 1000 / (10 ** (i * 6)) ) % 10 + 4;
       uint n2 = (randomWord / 100000 % 100);
       uint agl2 = 1;
@@ -159,6 +154,7 @@ contract Arena is ERC721, Ownable{
       // Check for winner
       if (hp1 <= 0) {
         WINNER = slower.id;
+        LOSER = faster.id;
         break;
       }
     }
@@ -166,39 +162,46 @@ contract Arena is ERC721, Ownable{
     if (WINNER == 0) {
       if (hp1 > hp2) {
         WINNER = faster.id;
+        LOSER = slower.id;
       }
       else {
         WINNER = slower.id;
+        LOSER = faster.id;
       }
     }
     // dragon
 
+    _rewarding(WINNER, LOSER, i);
 
 
   }
 
   function _rewarding(
-      Fighter memory _winner, // remake to uint16
-      uint _power1,
-      uint _power2,
+      uint16 _winner, // remake to uint16
+      uint16 _loser,
       uint8 _hits) 
       private 
     {
     uint256 totalAward = baseAward;
-
-    if(_power1 < _power2 ) {
-      uint dif = _power2 - _power1;
+    Fighter memory winner = fighters[_winner];
+    Fighter memory loser = fighters[_loser];
+    winner.wins += 1;
+    
+    uint power1 = winner.power;
+    uint power2 = loser.power;
+    if(power1 < power2 ) {
+      uint dif = power2 - power1;
       totalAward += dif.div(5);  // +20% of power difference
     }
     
     totalAward = totalAward + totalAward.mul(10 - _hits);
 
-    if (_winner.race == Race.Humans) {
+    if (winner.race == Race.Humans) {
       totalAward = totalAward.mul(12).div(10);
     }
     
     // For mintableFights
-    arenaCoin.mint(_winner.owner, totalAward);
+    arenaCoin.mint(winner.owner, totalAward);
 
   }
 
@@ -246,6 +249,7 @@ contract Arena is ERC721, Ownable{
     onlyRNG 
     returns (bool) 
   {
+    
     fighters[id].hp = int((_randomWords / 100) % 10000);
     fighters[id].damage = uint24((_randomWords / 10000000) % 10000);
     fighters[id].armor = uint24((_randomWords / 100000000000) % 10000);
