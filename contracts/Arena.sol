@@ -45,9 +45,16 @@ contract Arena is ERC721, Ownable{
     uint256 power; // Может логичнее каждый раз ее считать?
   }
 
-  mapping (uint16 => Fighter) fighters;
+  struct FightParams {
+    Fighter fighter1;
+    Fighter fighter2;
+    uint randomWord;
+  }
+
   mapping (uint256 => uint16) requestsToId;
-  
+  mapping (uint256 => FightParams) requestsToFight;
+  mapping (uint16 => Fighter) fighters;
+
   enum Race { Orcs, Dragons, Elves, Humans}
 
   modifier onlyRNG() {
@@ -65,21 +72,31 @@ contract Arena is ERC721, Ownable{
     vrf = VRFv2Consumer(_consumer);
   }
 
-  function _fight(Fighter memory fighter1, Fighter memory fighter2)  private returns(uint16) {
+  function fight(Fighter memory fighter1, Fighter memory fighter2) external returns(uint16) {
     require(mintableFights, "Can not access mint-fights"); // Move to mintFights
-    // uint24 hp1 = fighter1.hp;
-    // uint24 hp2 = fighter2.hp;
-    // 1hit
-    // 2hit
-    // 3hit
-    Fighter memory winner;
-    uint8 hits;
-    uint power1; // winner
-    uint power2;
-    _rewarding(winner, power1, power2, hits);
+    fighter1.stamina --;
+    fighter1.stamina --;
+    
+
+    uint256 requestId = vrf.requestRandomWords(); // comment when debug
+    requestsToFight[requestId] = FightParams(fighter1, fighter2, 0);
+
+    // Fighter memory winner;
+    // uint8 hits;
+    // uint power1; // winner
+    // uint power2;
+    // _rewarding(winner, power1, power2, hits);
 
 
-    return winner.id;
+    // return winner.id;
+  }
+
+  function _fight(uint requestId, uint randomWord) public {
+    require(msg.sender == address(this) || msg.sender == address(vrf), "Not allowed");
+    
+    uint24 hp1 = fighter1.hp;
+    uint24 hp2 = fighter2.hp;
+
   }
 
   function _rewarding(
@@ -192,6 +209,7 @@ contract Arena is ERC721, Ownable{
   function sellFighter(uint16 _id, uint256 _price) external onlyFighterOwner(_id) {
     fighters[_id].price = _price;
     fighters[_id].isSelling = true;
+    
   }
 
   function stopSelling(uint16 _id) external onlyFighterOwner(_id) {

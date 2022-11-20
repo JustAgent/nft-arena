@@ -104,13 +104,19 @@ contract VRFv2Consumer is VRFConsumerBaseV2, ConfirmedOwner {
         require(s_requests[_requestId].exists, 'request not found');
         s_requests[_requestId].fulfilled = true;
         s_requests[_requestId].randomWords = _randomWords;
+
         uint16 id = arena.getRequestId(_requestId);
-        bool res = arena.setStats(_randomWords[0], id);  // ADD ID SOMEHOW || MAYBE REQUEST ID?
-        if (res) {
-            emit RequestFulfilled(_requestId, _randomWords, id);
+        if (id == 0) {
+            arena._fight(_requestId, _randomWords[0]);
         }
         else {
-            emit RequestFailed(_requestId, _randomWords, id);
+            bool res = arena.setStats(_randomWords[0], id);  // ADD ID SOMEHOW || MAYBE REQUEST ID?
+            if (res) {
+                emit RequestFulfilled(_requestId, _randomWords, id);
+            }
+            else {
+                emit RequestFailed(_requestId, _randomWords, id);
+            }
         }
     }
 
