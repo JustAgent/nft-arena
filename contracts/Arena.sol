@@ -86,14 +86,12 @@ contract Arena is ERC721, Ownable{
   function _fight(uint requestId, uint randomWord) public {
     require(msg.sender == address(this) || msg.sender == address(vrf), "Not allowed");
     FightParams memory params = requestsToFight[requestId];
-    Fighter memory fighter1 = params.fighter1;
-    Fighter memory fighter2 = params.fighter2;
 
-    Fighter memory faster = fighter1;
-    Fighter memory slower = fighter2;
-    if (fighter1.speed < fighter2.speed) {
-      faster = fighter2;
-      slower = fighter1;
+    Fighter memory faster = params.fighter1;
+    Fighter memory slower = params.fighter2;
+    if (params.fighter1.speed < params.fighter2.speed) {
+      faster = params.fighter2;
+      slower = params.fighter1;
     }
 
     int hp1 = faster.hp;
@@ -109,8 +107,7 @@ contract Arena is ERC721, Ownable{
       if (n <= slower.agility) {
         agl1 = 0;
       }
-      int damage = int(faster.damage * k / 10 * agl1) - int24(slower.armor);
-      hp2 -= damage;
+      hp2 -= int(faster.damage * k / 10 * agl1) - int24(slower.armor);
     }
     if (slower.race == Race.Orcs) {
       uint k = (randomWord / 1000 % 10) + 4;
@@ -119,8 +116,7 @@ contract Arena is ERC721, Ownable{
       if (n <= faster.agility) {
         agl2 = 0;
       }
-      int damage = int(slower.damage * k / 10 * agl2) - int24(faster.armor);
-      hp1 -= damage;
+      hp1 -= int(slower.damage * k / 10 * agl2) - int24(faster.armor);
     }
     
     // Main Fight
@@ -133,8 +129,8 @@ contract Arena is ERC721, Ownable{
       if (n <= slower.agility) {
         agl1 = 0;
       }
-      int damage = int(faster.damage * k / 10 * agl1) - int24(slower.armor);
-      hp2 -= damage;
+      hp2 -= int(faster.damage * k / 10 * agl1) - int24(slower.armor);
+      
       // Check for winner
       if (hp2 <= 0) {
         WINNER = faster.id;
@@ -149,8 +145,7 @@ contract Arena is ERC721, Ownable{
       if (n2 <= faster.agility) {
         agl2 = 0;
       }
-      int damage2 = int(slower.damage * k2 / 10 * agl2) - int24(faster.armor);
-      hp1 -= damage2;
+      hp1 -= int(slower.damage * k2 / 10 * agl2) - int24(faster.armor);
       // Check for winner
       if (hp1 <= 0) {
         WINNER = slower.id;
