@@ -71,8 +71,11 @@ contract Arena is ERC721, Ownable{
     vrf = VRFv2Consumer(_consumer);
   }
 
-  function fight(Fighter memory fighter1, Fighter memory fighter2) external returns(uint16) {
+  function fight(uint16 fighter1Id, uint16 fighter2Id) external returns(uint16) {
     require(mintableFights, "Can not access mint-fights"); // Move to mintFights
+    Fighter memory fighter1 = fighters[fighter1Id];
+    Fighter memory fighter2 = fighters[fighter2Id];
+    require(fighter1.owner != fighter2.owner, "Self fights aren't allowed");
     fighter1.stamina --;
     fighter1.stamina --;
     
