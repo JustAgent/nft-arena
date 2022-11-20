@@ -12,12 +12,13 @@ contract ArenaCoin is ERC20, Ownable {
 
   uint256 maxSupply = 10000000000; // 1.000.000.000.000
   address arena;
+  address arenaFight;
   address wethAdd = 0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6; // goerli
 
   WETH weth = WETH(wethAdd);
 
   modifier onlyAdmins() {
-        require(owner() == _msgSender() || arena == _msgSender(), "Ownable: caller is not the owner");
+        require(owner() == _msgSender() || arena == _msgSender() || arenaFight == _msgSender(), "Ownable: caller is not the owner");
         _;
     }
 
@@ -72,6 +73,9 @@ contract ArenaCoin is ERC20, Ownable {
 
   function setArenaAddress(address _arena) public onlyOwner {
     arena = _arena;
+  }
+  function setArenaFightAddress(address _arenaFight) public onlyOwner {
+    arenaFight = _arenaFight;
   }
 
 }
