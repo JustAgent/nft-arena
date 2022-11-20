@@ -100,6 +100,7 @@ contract Arena is ERC721, Ownable{
     uint8 i = 1;
     // Starting battle
     // ORC
+    // 123456789
     if (fighter1.race == Race.Orcs) {
       uint k = (randomWord % 10) + 4;
       uint n = (randomWord / 10 % 100);
@@ -107,9 +108,21 @@ contract Arena is ERC721, Ownable{
       if (n <= fighter2.agility) {
         agl1 = 0;
       }
-      int damage = int( int(fighter1.damage * k / 10 * agl1) - int24(fighter2.armor));
+      int damage = int(fighter1.damage * k / 10 * agl1) - int24(fighter2.armor);
       hp2 -= damage;
     }
+    if (fighter2.race == Race.Orcs) {
+      uint k = (randomWord / 1000 % 10) + 4;
+      uint n = (randomWord / 10000 % 100);
+      uint agl2 = 1;
+      if (n <= fighter2.agility) {
+        agl2 = 0;
+      }
+      int damage = int(fighter2.damage * k / 10 * agl2) - int24(fighter1.armor);
+      hp1 -= damage;
+    }
+    
+    // Main Fight
     while (i <= 10 || hp1 > 0 || hp2 > 0) {
       
     }
