@@ -95,41 +95,90 @@ contract Arena is ERC721, Ownable{
     FightParams memory params = requestsToFight[requestId];
     Fighter memory fighter1 = params.fighter1;
     Fighter memory fighter2 = params.fighter2;
-    int hp1 = fighter1.hp;
-    int hp2 = fighter2.hp;
+
+    Fighter memory faster = fighter1;
+    Fighter memory slower = fighter2;
+    if (fighter1.speed < fighter2.speed) {
+      faster = fighter2;
+      slower = fighter1;
+    }
+
+    int hp1 = faster.hp;
+    int hp2 = slower.hp;
+    uint16 WINNER;
     uint8 i = 1;
     // Starting battle
-    // ORC
-    // 123456789
-    if (fighter1.race == Race.Orcs) {
+    // ORCs
+    if (faster.race == Race.Orcs) {
       uint k = (randomWord % 10) + 4;
       uint n = (randomWord / 10 % 100);
       uint agl1 = 1;
-      if (n <= fighter2.agility) {
+      if (n <= slower.agility) {
         agl1 = 0;
       }
-      int damage = int(fighter1.damage * k / 10 * agl1) - int24(fighter2.armor);
+      int damage = int(faster.damage * k / 10 * agl1) - int24(slower.armor);
       hp2 -= damage;
     }
-    if (fighter2.race == Race.Orcs) {
+    if (slower.race == Race.Orcs) {
       uint k = (randomWord / 1000 % 10) + 4;
       uint n = (randomWord / 10000 % 100);
       uint agl2 = 1;
-      if (n <= fighter2.agility) {
+      if (n <= faster.agility) {
         agl2 = 0;
       }
-      int damage = int(fighter2.damage * k / 10 * agl2) - int24(fighter1.armor);
+      int damage = int(slower.damage * k / 10 * agl2) - int24(faster.armor);
       hp1 -= damage;
     }
-    
+    // 123456789 123456 789123 456789
     // Main Fight
     while (i <= 10 || hp1 > 0 || hp2 > 0) {
-      
+      //Step 1
+      uint k = (randomWord / 10**(i * 6)) % 10 + 4;
+      uint n = (randomWord / 10**(i * 6 + 1) % 100);
+      uint agl1 = 1;
+      if (n <= slower.agility) {
+        agl1 = 0;
+      }
+      int damage = int(faster.damage * k / 10 * agl1) - int24(slower.armor);
+      hp2 -= damage;
+      // Check for winner
+      if (hp2 <= 0) {
+        WINNER = faster.id;
+        break;
+      }
+      //Step 2
+      // 123456 123456 123456 123456 123456 123456
+      uint k2 = (randomWord / 1000 / (10 ** (i * 6)) ) % 10 + 4;
+      uint n2 = (randomWord / 100000 % 100);
+      uint agl2 = 1;
+      if (n2 <= faster.agility) {
+        agl2 = 0;
+      }
+      int damage2 = int(slower.damage * k2 / 10 * agl2) - int24(faster.armor);
+      hp1 -= damage2;
+      // Check for winner
+      if (hp1 <= 0) {
+        WINNER = slower.id;
+        break;
+      }
     }
+    // If its draw
+    if (WINNER == 0) {
+      if (hp1 > hp2) {
+        WINNER = faster.id;
+      }
+      else {
+        WINNER = slower.id;
+      }
+    }
+    // dragon
+
+
+
   }
 
   function _rewarding(
-      Fighter memory _winner,
+      Fighter memory _winner, // remake to uint16
       uint _power1,
       uint _power2,
       uint8 _hits) 
