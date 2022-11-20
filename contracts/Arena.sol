@@ -10,9 +10,12 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./VRFv2Consumer.sol";
 import "./ArenaCoin.sol";
+import "./Calculate.sol";
+
 
 contract Arena is ERC721, Ownable{
   using SafeMath for uint;
+  using Calculate for uint;
   VRFv2Consumer vrf;
   ArenaCoin arenaCoin;
   uint256 baseAward = 10000;
@@ -62,7 +65,7 @@ contract Arena is ERC721, Ownable{
   }
 
   modifier onlyFighterOwner(uint16 _id) {
-    require(fighters[_id].owner == msg.sender, 'Not owner');
+    _onlyFO(_id);
     _;
   }
 
@@ -71,7 +74,11 @@ contract Arena is ERC721, Ownable{
     vrf = VRFv2Consumer(_consumer);
   }
 
-  function fight(uint16 fighter1Id, uint16 fighter2Id) external returns(uint16) {
+  function _onlyFO(uint16 _id) private view {
+    require(fighters[_id].owner == msg.sender, 'Not owner');
+  }
+
+  function fight(uint16 fighter1Id, uint16 fighter2Id) external {
     require(mintableFights, "Can not access mint-fights"); // Move to mintFights
     Fighter memory fighter1 = fighters[fighter1Id];
     Fighter memory fighter2 = fighters[fighter2Id];
@@ -104,35 +111,27 @@ contract Arena is ERC721, Ownable{
     // Starting battle
     // ORCs
     if (faster.race == Race.Orcs) {
-      uint k = (randomWord % 10) + 4;
-      uint n = (randomWord / 10 % 100);
-      uint agl1 = 1;
-      if (n <= slower.agility) {
+      uint8 agl1 = 1;
+      if ((randomWord / 10 % 100) <= slower.agility) {
         agl1 = 0;
       }
-      hp2 -= int(faster.damage * k / 10 * agl1) - int24(slower.armor);
+      hp2 -= int( Calculate.calculateHP(faster.damage, randomWord, 0, 0, 0) * agl1) - int24(slower.armor);
     }
     if (slower.race == Race.Orcs) {
-      uint k = (randomWord / 1000 % 10) + 4;
-      uint n = (randomWord / 10000 % 100);
       uint agl2 = 1;
-      if (n <= faster.agility) {
+      if ((randomWord / 10000 % 100) <= faster.agility) {
         agl2 = 0;
       }
-      hp1 -= int(slower.damage * k / 10 * agl2) - int24(faster.armor);
+      hp1 -= int( Calculate.calculateHP(slower.damage, randomWord, 0, 0, 3) * agl2) - int24(faster.armor);
     }
     
     // Main Fight
     uint8 i = 1;
     while (i <= 10 || hp1 > 0 || hp2 > 0) {
+      
       //Step 1
-      uint k = (randomWord / 10**(i * 6)) % 10 + 4;
-      uint n = (randomWord / 10**(i * 6 + 1) % 100);
-      uint agl1 = 1;
-      if (n <= slower.agility) {
-        agl1 = 0;
-      }
-      hp2 -= int(faster.damage * k / 10 * agl1) - int24(slower.armor);
+      hp2 -= int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
+        Calculate.calculateAgility(randomWord, i, 1, slower.agility)) - int24(slower.armor);
       
       // Check for winner
       if (hp2 <= 0) {
@@ -142,13 +141,9 @@ contract Arena is ERC721, Ownable{
       }
 
       //Step 2
-      uint k2 = (randomWord / 1000 / (10 ** (i * 6)) ) % 10 + 4;
-      uint n2 = (randomWord / 100000 % 100);
-      uint agl2 = 1;
-      if (n2 <= faster.agility) {
-        agl2 = 0;
-      }
-      hp1 -= int(slower.damage * k2 / 10 * agl2) - int24(faster.armor);
+      hp1 -= int(Calculate.calculateHP(slower.damage, randomWord, i, 6, 3) * 
+        Calculate.calculateAgility(randomWord, i, 4, faster.agility)) - int24(faster.armor);
+
       // Check for winner
       if (hp1 <= 0) {
         WINNER = slower.id;
@@ -173,6 +168,8 @@ contract Arena is ERC721, Ownable{
 
 
   }
+
+  
 
   function _rewarding(
       uint16 _winner, // remake to uint16
@@ -215,7 +212,7 @@ contract Arena is ERC721, Ownable{
     requestsToId[requestId] = num;
 
     fighters[num] = Fighter(
-      msg.sender,
+      _to,
       string.concat('Fighter ', Strings.toString(num)),
       Race.Humans,
       0, //speed
@@ -335,3 +332,7 @@ contract Arena is ERC721, Ownable{
   }
 }
 
+contract ArenaFight is Arena {
+
+  
+}
