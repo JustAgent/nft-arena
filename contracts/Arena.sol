@@ -31,7 +31,7 @@ contract Arena is ERC721, Ownable{
     Race race;
     uint8 speed;
     uint16 id;
-    uint24 hp;
+    int hp;
     uint24 stamina;
     uint24 maxStamina;
     uint24 damage;
@@ -95,11 +95,21 @@ contract Arena is ERC721, Ownable{
     FightParams memory params = requestsToFight[requestId];
     Fighter memory fighter1 = params.fighter1;
     Fighter memory fighter2 = params.fighter2;
-    int24 hp1 = int24(fighter1.hp);
-    int24 hp2 = int24(fighter2.hp);
+    int hp1 = fighter1.hp;
+    int hp2 = fighter2.hp;
     uint8 i = 1;
     // Starting battle
     // ORC
+    if (fighter1.race == Race.Orcs) {
+      uint k = (randomWord % 10) + 4;
+      uint n = (randomWord / 10 % 100);
+      uint agl1 = 1;
+      if (n <= fighter2.agility) {
+        agl1 = 0;
+      }
+      int damage = int( int(fighter1.damage * k / 10 * agl1) - int24(fighter2.armor));
+      hp2 -= damage;
+    }
     while (i <= 10 || hp1 > 0 || hp2 > 0) {
       
     }
@@ -174,7 +184,7 @@ contract Arena is ERC721, Ownable{
     onlyRNG 
     returns (bool) 
   {
-    fighters[id].hp = uint24((_randomWords / 100) % 10000);
+    fighters[id].hp = int((_randomWords / 100) % 10000);
     fighters[id].damage = uint24((_randomWords / 10000000) % 10000);
     fighters[id].armor = uint24((_randomWords / 100000000000) % 10000);
     fighters[id].agility = uint24((_randomWords / 1000000000000000) % 100);
