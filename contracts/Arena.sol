@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.12;
+pragma experimental ABIEncoderV2;
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./VRFv2Consumer.sol";
@@ -13,7 +15,7 @@ import "./ArenaCoin.sol";
 import "./Calculate.sol";
 
 
-contract Arena is ERC721, Ownable{
+contract Arena is ERC721, Ownable, ReentrancyGuard{
   using SafeMath for uint;
   using Calculate for uint;
   VRFv2Consumer vrf;
@@ -80,11 +82,13 @@ contract Arena is ERC721, Ownable{
 
   function fight(uint16 fighter1Id, uint16 fighter2Id) external {
     require(mintableFights, "Can not access mint-fights"); // Move to mintFights
+    require(fighters[fighter1Id].stamina>0, 'Stamina1');
+    require(fighters[fighter2Id].stamina>0, 'Stamina2');
     Fighter memory fighter1 = fighters[fighter1Id];
     Fighter memory fighter2 = fighters[fighter2Id];
     require(fighter1.owner != fighter2.owner, "Self fights aren't allowed");
-    fighter1.stamina --;
-    fighter1.stamina --;
+    fighters[fighter1Id].stamina -= 1;
+    fighters[fighter2Id].stamina -= 1;
     
 
     uint256 requestId = vrf.requestRandomWords(); // comment when debug
@@ -268,14 +272,14 @@ contract Arena is ERC721, Ownable{
 
   }
 
-  function buyFighter(uint16 _id) external returns(bool) {
+  function buyFighter(uint16 _id) nonReentrant external returns(bool) {
     require(fighters[_id].isSelling, 'Not for sell');
     require(arenaCoin.balanceOf(msg.sender) >= fighters[_id].price, 'Not enough funds');
     require(fighters[_id].owner != msg.sender, 'Cant transfer to yourself');
 
     bool result = arenaCoin.transferFrom(msg.sender, fighters[_id].owner, fighters[_id].price);
     require(result, "Transfer failed");
-
+    transferFrom(fighters[_id].owner, msg.sender, _id); 
     fighters[_id].owner = msg.sender;
     fighters[_id].isSelling = false;
 
@@ -330,9 +334,7 @@ contract Arena is ERC721, Ownable{
   function toggleMintableFights() public onlyOwner {
     mintableFights = !mintableFights;
   }
-}
-
-contract ArenaFight is Arena {
-
-  
+  function returnWarrior( uint16 id) public view returns(Fighter memory) {
+     return fighters[id];
+ }
 }
