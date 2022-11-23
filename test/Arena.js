@@ -36,21 +36,27 @@ describe("Arena", function () {
       const { vrf, coin, arena, owner, acc1 } = await loadFixture(
         deployFixture
       );
+      async function randomBN() {
+        let value = "";
+        for (i = 0; i < 77; i++) {
+          value = value + Math.floor(Math.random() * (9 + 1));
+        }
+        return value;
+      }
+      const rnd = await randomBN();
+      const rnd2 = await randomBN();
+      const rnd3 = await randomBN();
+      console.log(rnd);
+      console.log(typeof rnd);
 
       await arena.toggleMintableFights();
-      await arena.mintFighter(owner.address);
-      await arena.mintFighter(acc1.address);
+      await arena.mintFighter(owner.address, rnd);
+      await arena.mintFighter(acc1.address, rnd2);
       expect(await arena.totalSupply()).to.eq(2);
       expect(await arena.ownerOf(2)).to.eq(acc1.address);
 
-      // expect(await arena.fight(1, 2)).to.eq(false);
       await arena.fight(1, 2);
-      await arena._fight(
-        3,
-        BigNumber.from(
-          "12345671234567123456712345671234567123456712345671234567123456712345671234567"
-        )
-      );
+      await arena._fight(3, BigNumber.from(rnd3));
     });
   });
 

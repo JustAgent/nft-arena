@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.12;
 pragma experimental ABIEncoderV2;
-// Uncomment this line to use console.log
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -99,8 +98,8 @@ contract Arena is ERC721, Ownable{
     return true;
   }
 
-  function _fight(uint requestId, uint randomWord) public {
-    //require(msg.sender == address(this) || msg.sender == address(vrf), "Not allowed");
+  function _fight(uint requestId, uint randomWord) external {
+    // require(msg.sender == address(this) || msg.sender == address(vrf), "Not allowed");
     FightParams memory params = requestsToFight[requestId];
 
     Fighter memory faster = params.fighter1;
@@ -121,25 +120,42 @@ contract Arena is ERC721, Ownable{
       if ((randomWord / 10 % 100) <= slower.agility) {
         agl1 = 0;
       }
-      hp2 -= int( Calculate.calculateHP(faster.damage, randomWord, 0, 0, 0) * agl1) - int24(slower.armor);
+      int orcdmg1 = int( Calculate.calculateHP(faster.damage, randomWord, 0, 0, 0) * agl1) - int24(slower.armor);
+      if (orcdmg1< 0 ) {
+        orcdmg1 = 0;
+      }
+      hp2 -= orcdmg1;
     }
     if (slower.race == Race.Orcs) {
       uint agl2 = 1;
       if ((randomWord / 10000 % 100) <= faster.agility) {
         agl2 = 0;
       }
-      hp1 -= int( Calculate.calculateHP(slower.damage, randomWord, 0, 0, 3) * agl2) - int24(faster.armor);
+      int orcdmg2 = int( Calculate.calculateHP(slower.damage, randomWord, 0, 0, 3) * agl2) - int24(faster.armor);
+      if (orcdmg2< 0 ) {
+        orcdmg2 = 0;
+      }
+      hp1 -= orcdmg2;
     }
     
     // Main Fight
     uint8 i = 1;
     while (i <= 10) { 
+      console.log("HP1");
+      console.log(uint(hp1));
+      console.log("HP2");
+
+      console.log(uint(hp2));
       if(hp1 <= 0 || hp2 <= 0) {
         break;
       }
       //Step 1
-      hp2 -= int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
+      int damage1 = int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
         Calculate.calculateAgility(randomWord, i, 1, slower.agility)) - int24(slower.armor);
+      if (damage1< 0 ) {
+        damage1 = 0;
+      }
+      hp2 -= damage1;
       
       // Check for winner
       if (hp2 <= 0) {
@@ -149,8 +165,12 @@ contract Arena is ERC721, Ownable{
       }
 
       //Step 2
-      hp1 -= int(Calculate.calculateHP(slower.damage, randomWord, i, 6, 3) * 
-        Calculate.calculateAgility(randomWord, i, 4, faster.agility)) - int24(faster.armor);
+      int damage2 = int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
+        Calculate.calculateAgility(randomWord, i, 1, slower.agility)) - int24(slower.armor);
+      if (damage2< 0 ) {
+        damage2 = 0;
+      }
+      hp1 -= damage2;
 
       // Check for winner
       if (hp1 <= 0) {
@@ -172,7 +192,6 @@ contract Arena is ERC721, Ownable{
       }
     }
     // dragon
-    console.log(111);
     _rewarding(WINNER, LOSER, i-1);
 
 
@@ -186,6 +205,8 @@ contract Arena is ERC721, Ownable{
       uint8 _hits) 
       private 
     {
+      console.log(_winner);
+      console.log(_loser);
     uint256 totalAward = baseAward;
     Fighter memory winner = fighters[_winner];
     Fighter memory loser = fighters[_loser];
@@ -197,12 +218,9 @@ contract Arena is ERC721, Ownable{
       uint dif = power2 - power1;
       totalAward += dif.div(5);  // +20% of power difference
     }
-    console.log(221);
-    console.log(totalAward);
-    console.log(_hits);
+    
 
     totalAward = totalAward + totalAward.mul(10 - _hits);
-    console.log(223);
     if (winner.race == Race.Humans) {
       totalAward = totalAward.mul(12).div(10);
     }
@@ -212,7 +230,7 @@ contract Arena is ERC721, Ownable{
 
   }
 
-  function mintFighter(address _to) public returns (bool) {
+  function mintFighter(address _to, uint _randomWords) public returns (bool) {
     require(totalSupply != MAX_COUNT, 'Max supply reached');
     uint mintCost = baseMintCost + baseMintCost.mul(totalSupply).div(1000);
     require(arenaCoin.balanceOf(msg.sender) >= mintCost, 'Not enough funds');
@@ -242,7 +260,8 @@ contract Arena is ERC721, Ownable{
       0, //last fight
       0 //power
       );
-    vrf.fulfillRandomWords(requestId);
+    //vrf.fulfillRandomWords(requestId);
+    setStats(_randomWords, num);
     totalSupply ++;
     return true;
 

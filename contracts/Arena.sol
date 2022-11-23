@@ -119,25 +119,42 @@
 //       if ((randomWord / 10 % 100) <= slower.agility) {
 //         agl1 = 0;
 //       }
-//       hp2 -= int( Calculate.calculateHP(faster.damage, randomWord, 0, 0, 0) * agl1) - int24(slower.armor);
+//       int orcdmg1 = int( Calculate.calculateHP(faster.damage, randomWord, 0, 0, 0) * agl1) - int24(slower.armor);
+//       if (orcdmg1< 0 ) {
+//         orcdmg1 = 0;
+//       }
+//       hp2 -= orcdmg1;
 //     }
 //     if (slower.race == Race.Orcs) {
 //       uint agl2 = 1;
 //       if ((randomWord / 10000 % 100) <= faster.agility) {
 //         agl2 = 0;
 //       }
-//       hp1 -= int( Calculate.calculateHP(slower.damage, randomWord, 0, 0, 3) * agl2) - int24(faster.armor);
+//       int orcdmg2 = int( Calculate.calculateHP(slower.damage, randomWord, 0, 0, 3) * agl2) - int24(faster.armor);
+//       if (orcdmg2< 0 ) {
+//         orcdmg2 = 0;
+//       }
+//       hp1 -= orcdmg2;
 //     }
     
 //     // Main Fight
 //     uint8 i = 1;
-//     while (i <= 10) { //WRONG
+//     while (i <= 10) { 
+//       console.log("HP1");
+//       console.log(uint(hp1));
+//       console.log("HP2");
+
+//       console.log(uint(hp2));
 //       if(hp1 <= 0 || hp2 <= 0) {
 //         break;
 //       }
 //       //Step 1
-//       hp2 -= int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
+//       int damage1 = int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
 //         Calculate.calculateAgility(randomWord, i, 1, slower.agility)) - int24(slower.armor);
+//       if (damage1< 0 ) {
+//         damage1 = 0;
+//       }
+//       hp2 -= damage1;
       
 //       // Check for winner
 //       if (hp2 <= 0) {
@@ -147,8 +164,12 @@
 //       }
 
 //       //Step 2
-//       hp1 -= int(Calculate.calculateHP(slower.damage, randomWord, i, 6, 3) * 
-//         Calculate.calculateAgility(randomWord, i, 4, faster.agility)) - int24(faster.armor);
+//       int damage2 = int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
+//         Calculate.calculateAgility(randomWord, i, 1, slower.agility)) - int24(slower.armor);
+//       if (damage2< 0 ) {
+//         damage2 = 0;
+//       }
+//       hp1 -= damage2;
 
 //       // Check for winner
 //       if (hp1 <= 0) {
