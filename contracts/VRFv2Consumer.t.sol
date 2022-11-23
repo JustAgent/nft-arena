@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 import "./Arena.t.sol";
-contract VRFv2Consumer {
-   Arena arena;
+contract VRFv2ConsumerT {
+   ArenaT arena;
    uint num = 1;
     function requestRandomWords() public returns (uint256 requestId)
     {
@@ -23,7 +23,7 @@ contract VRFv2Consumer {
     }
 
     function setArena(address ad) public {
-        arena = Arena(ad);
+        arena = ArenaT(ad);
     }
 
 }

@@ -12,10 +12,10 @@ import "./ArenaCoin.sol";
 import "./Calculate.sol";
 
 
-contract Arena is ERC721, Ownable{
+contract ArenaT is ERC721, Ownable{
   using SafeMath for uint;
   using Calculate for uint;
-  VRFv2Consumer vrf;
+  VRFv2ConsumerT vrf;
   ArenaCoin arenaCoin;
   uint256 public baseAward = 10000;
   uint256 baseMintCost = 500000; // + 0.1% per minted
@@ -31,7 +31,7 @@ contract Arena is ERC721, Ownable{
     address owner;
     string name;
     Race race;
-    uint8 speed;
+    uint24 speed;
     uint16 id;
     int hp;
     uint24 stamina;
@@ -44,13 +44,8 @@ contract Arena is ERC721, Ownable{
     uint256 price;
     uint256 wins;
     uint256 lastFight;
-    uint256 power; // Может логичнее каждый раз ее считать?
+    uint256 power; 
   }
-//     function returnWarrior(uint16 id) public view returns(int, uint24, uint24, uint24, uint256, uint24, bool, uint256, address, uint24, uint8) {,
-//       return (fighters[id].hp, fighters[id].stamina, fighters[id].damage, fighters[id].armor, fighters[id].price,
-//       fighters[id].agility, fighters[id].isSelling, fighters[id].wins, fighters[id].owner,
-//       fighters[id].MaxStamina, fighters[id].speed)
-//   }
   struct FightParams {
     Fighter fighter1;
     Fighter fighter2;
@@ -76,7 +71,7 @@ contract Arena is ERC721, Ownable{
 
   constructor(string memory _name, string memory _symbol, address _arenaCoin, address _consumer) ERC721(_name, _symbol){
     arenaCoin = ArenaCoin(_arenaCoin);
-    vrf = VRFv2Consumer(_consumer);
+    vrf = VRFv2ConsumerT(_consumer);
   }
 
   function _onlyFO(uint16 _id) private view {
@@ -88,6 +83,7 @@ contract Arena is ERC721, Ownable{
     Fighter memory fighter1 = fighters[fighter1Id];
     Fighter memory fighter2 = fighters[fighter2Id];
     require(fighter1.owner != fighter2.owner, "Self fights aren't allowed");
+    require(fighters[fighter1Id].stamina > 0 && fighters[fighter2Id].stamina > 0, "Fighters have no stamina");
     fighters[fighter1Id].stamina -= 1;
     fighters[fighter2Id].stamina -= 1;
     
@@ -108,7 +104,7 @@ contract Arena is ERC721, Ownable{
       faster = params.fighter2;
       slower = params.fighter1;
     }
-
+    console.log('START'); 
     int hp1 = faster.hp;
     int hp2 = slower.hp;
     uint16 WINNER;
@@ -116,6 +112,7 @@ contract Arena is ERC721, Ownable{
     // Starting battle
     // ORCs
     if (faster.race == Race.Orcs) {
+      console.log('ORC1');
       uint8 agl1 = 1;
       if ((randomWord / 10 % 100) <= slower.agility) {
         agl1 = 0;
@@ -127,6 +124,7 @@ contract Arena is ERC721, Ownable{
       hp2 -= orcdmg1;
     }
     if (slower.race == Race.Orcs) {
+      console.log('ORC2');
       uint agl2 = 1;
       if ((randomWord / 10000 % 100) <= faster.agility) {
         agl2 = 0;
@@ -141,16 +139,16 @@ contract Arena is ERC721, Ownable{
     // Main Fight
     uint8 i = 1;
     while (i <= 10) { 
-      console.log("HP1");
-      console.log(uint(hp1));
-      console.log("HP2");
-      console.log(uint(hp2));
+      // console.log("HP1");
+      // console.log(uint(hp1));
+      // console.log("HP2");
+      // console.log(uint(hp2));
       if(hp1 <= 0 || hp2 <= 0) {
         break;
       }
       //Step 1
       int damage1 = int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
-        Calculate.calculateAgility(randomWord, i, 1, slower.agility)) ;
+        Calculate.calculateAgility(randomWord, i, 1, slower.agility)) - int24(slower.armor);
       if (damage1< 0 ) {
         damage1 = 0;
       }
@@ -160,12 +158,14 @@ contract Arena is ERC721, Ownable{
       if (hp2 <= 0) {
         WINNER = faster.id;
         LOSER = slower.id;
+        console.log('winner----hp2<0');
+        console.log(WINNER);
         break;
       }
 
       //Step 2
       int damage2 = int( Calculate.calculateHP(slower.damage, randomWord, i, 6, 3) * 
-        Calculate.calculateAgility(randomWord, i, 4, faster.agility));
+        Calculate.calculateAgility(randomWord, i, 4, faster.agility)) - int24(faster.armor);
       if (damage2< 0 ) {
         damage2 = 0;
       }
@@ -175,17 +175,20 @@ contract Arena is ERC721, Ownable{
       if (hp1 <= 0) {
         WINNER = slower.id;
         LOSER = faster.id;
+        console.log('winner----hp1<0');
+        console.log(WINNER);
         break;
       }
       i++;
     }
-      console.log("HP1");
-      console.log(uint(hp1));
-      console.log("HP2");
-      console.log(uint(hp2));
-      console.log(uint(i));
+      // console.log("HP111");
+      // console.log(uint(hp1));
+      // console.log("HP222");
+      // console.log(uint(hp2));
+      // console.log(uint(i));
     // If its draw
     if (WINNER == 0) {
+      // console.log("WORKS");
       if (hp1 > hp2) {
         WINNER = faster.id;
         LOSER = slower.id;
@@ -196,6 +199,12 @@ contract Arena is ERC721, Ownable{
       }
     }
     // dragon
+    if (fighters[WINNER].race == Race.Dragons) {
+      if ( (randomWord / (10 ** 70) % 10) < 3 ) {
+        fighters[WINNER].stamina += 1;
+        console.log("DRAGON");
+      }
+    }
     _rewarding(WINNER, LOSER, i-1);
 
 
@@ -209,26 +218,39 @@ contract Arena is ERC721, Ownable{
       uint8 _hits) 
       private 
     {
+      console.log("WINNER");
       console.log(_winner);
       console.log(_loser);
     uint256 totalAward = baseAward;
     Fighter memory winner = fighters[_winner];
     Fighter memory loser = fighters[_loser];
-    winner.wins += 1;
+    fighters[_winner].wins += 1;
     
     uint power1 = winner.power;
     uint power2 = loser.power;
+    console.log(totalAward);
     if(power1 < power2 ) {
       uint dif = power2 - power1;
+      console.log('POWER DIFF');
+      console.log(dif);
       totalAward += dif.div(5);  // +20% of power difference
     }
+    console.log(totalAward);
     
 
-    totalAward = totalAward + totalAward.mul(10 - _hits);
+    totalAward = totalAward + totalAward.mul(10 - _hits).div(10);
     if (winner.race == Race.Humans) {
+      console.log("Human");
+      console.log(totalAward);
+
       totalAward = totalAward.mul(12).div(10);
+      console.log(totalAward);
     }
+
     
+    console.log("totalAward");
+    console.log(totalAward);
+    // console.log(uint(winner.race));
     // For mintableFights
     arenaCoin.mint(winner.owner, totalAward);
 
@@ -286,17 +308,26 @@ contract Arena is ERC721, Ownable{
     fighters[id].agility = uint24((_randomWords / 1000000000000000) % 100);
     fighters[id].maxStamina = uint24((_randomWords / 1000000) % 10);
     fighters[id].stamina = uint24((_randomWords / 1000000) % 10);
-    fighters[id].speed = uint8( _randomWords % 100);
+    fighters[id].speed = uint24( _randomWords % 100);
     fighters[id].race = Race((_randomWords / 1000000000000000) / 100 % 4);
 
+    if (fighters[id].race == Race.Elves) {
+      fighters[id].agility += 5;
+      console.log('ELVES');
+    }
   // 1 HP + 1.5 ARMOR + 1000 AGILITY + 1 DAMAGE + 150 SPEED? NOT WORKING CZ OF TYPES
-    // fighters[id].power = 
-    //   (fighters[id].hp) + 
-    //   (fighters[id].armor * 15 / 10) +
-    //   (fighters[id].agility * 1000) +
-    //   (fighters[id].damage) +
-    //   (fighters[id].speed * 150);
-    
+  // console.log(uint(fighters[id].hp));
+  // console.log("HERE");
+    fighters[id].power = uint(
+      uint(fighters[id].hp) + 
+      uint(fighters[id].armor * 15 / 10) +
+      uint(fighters[id].agility * 1000) +
+      uint(fighters[id].damage) +
+      uint(fighters[id].speed * 150)
+      );
+    console.log("POWER");
+    // console.log(uint(fighters[id].hp));
+    console.log(fighters[id].power);
     //emit
     return true;
     
