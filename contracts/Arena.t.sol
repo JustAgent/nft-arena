@@ -17,10 +17,10 @@ contract ArenaT is ERC721, Ownable{
   using Calculate for uint;
   VRFv2ConsumerT vrf;
   ArenaCoin arenaCoin;
-  uint256 public baseAward = 10000;
+  uint256 public baseReward = 10000;
   uint256 baseMintCost = 500000; // + 0.1% per minted
   uint256 legendaryMintCost = 2000000; // 2mln
-  uint256 restorationCost;
+  uint256 restorationCost = 20000;
   uint16 constant MAX_COUNT  = 30000;
   uint16 constant MAX_LEGENDARY = 1000;
   uint16 public totalSupply;
@@ -56,6 +56,8 @@ contract ArenaT is ERC721, Ownable{
   mapping (uint256 => uint16) requestsToId;
   mapping (uint256 => FightParams) requestsToFight;
   mapping (uint16 => Fighter)  fighters;
+  mapping (uint16 => mapping(uint16 => bool)) challenges;
+
 
   enum Race { Orcs, Dragons, Elves, Humans}
 
@@ -78,26 +80,37 @@ contract ArenaT is ERC721, Ownable{
     require(fighters[_id].owner == msg.sender, 'Not owner');
   }
 
-  function fight(uint16 fighter1Id, uint16 fighter2Id) external returns(bool){
+  function challenge(uint16 yourFighter, uint16 opponent) external onlyFighterOwner(yourFighter) {
+    require(fighters[opponent].owner != msg.sender, 'Self fight');
+    require(arenaCoin.transferFrom(msg.sender, address(this), 8000), 'TX failed');
+    challenges[opponent][yourFighter] = true;
+  }
+
+  function applyChallenge(uint16 yourFighter, uint16 opponent) external onlyFighterOwner(yourFighter) {
+    require(challenges[yourFighter][opponent] == true, 'No challenge');
+    challenges[yourFighter][opponent] == false;
+    arenaCoin.transferFrom(address(this), msg.sender, 7000);
+    fight(yourFighter, opponent);
+  }
+
+  function fight(uint16 fighter1Id, uint16 fighter2Id) private returns(bool){
     require(mintableFights, "Can not access mint-fights"); // Move to mintFights
-    Fighter memory fighter1 = fighters[fighter1Id];
-    Fighter memory fighter2 = fighters[fighter2Id];
-    require(fighter1.owner != fighter2.owner, "Self fights aren't allowed");
+    require(fighters[fighter1Id].owner != fighters[fighter2Id].owner, "Self fights aren't allowed");
     require(fighters[fighter1Id].stamina > 0 && fighters[fighter2Id].stamina > 0, "Fighters have no stamina");
     fighters[fighter1Id].stamina -= 1;
     fighters[fighter2Id].stamina -= 1;
     
 
     uint256 requestId = vrf.requestRandomWords(); // comment when debug
-    requestsToFight[requestId] = FightParams(fighter1, fighter2);
-    //vrf.fulfillRandomWords(requestId);
+    requestsToFight[requestId] = FightParams(fighters[fighter1Id], fighters[fighter2Id]);
+    vrf.fulfillRandomWords(requestId);
     return true;
   }
 
   function _fight(uint requestId, uint randomWord) external {
     // require(msg.sender == address(this) || msg.sender == address(vrf), "Not allowed");
     FightParams memory params = requestsToFight[requestId];
-
+    console.log('WORKS');
     Fighter memory faster = params.fighter1;
     Fighter memory slower = params.fighter2;
     if (params.fighter1.speed < params.fighter2.speed) {
@@ -221,38 +234,38 @@ contract ArenaT is ERC721, Ownable{
       console.log("WINNER");
       console.log(_winner);
       console.log(_loser);
-    uint256 totalAward = baseAward;
+    uint256 totalReward = baseReward;
     Fighter memory winner = fighters[_winner];
     Fighter memory loser = fighters[_loser];
     fighters[_winner].wins += 1;
     
     uint power1 = winner.power;
     uint power2 = loser.power;
-    console.log(totalAward);
+    console.log(totalReward);
     if(power1 < power2 ) {
       uint dif = power2 - power1;
       console.log('POWER DIFF');
       console.log(dif);
-      totalAward += dif.div(5);  // +20% of power difference
+      totalReward += dif.div(5);  // +20% of power difference
     }
-    console.log(totalAward);
+    console.log(totalReward);
     
 
-    totalAward = totalAward + totalAward.mul(10 - _hits).div(10);
+    totalReward = totalReward + totalReward.mul(10 - _hits).div(10);
     if (winner.race == Race.Humans) {
       console.log("Human");
-      console.log(totalAward);
+      console.log(totalReward);
 
-      totalAward = totalAward.mul(12).div(10);
-      console.log(totalAward);
+      totalReward = totalReward.mul(12).div(10);
+      console.log(totalReward);
     }
 
     
-    console.log("totalAward");
-    console.log(totalAward);
+    console.log("totalReward");
+    console.log(totalReward);
     // console.log(uint(winner.race));
     // For mintableFights
-    arenaCoin.mint(winner.owner, totalAward);
+    arenaCoin.mint(winner.owner, totalReward);
 
   }
 
@@ -398,5 +411,18 @@ contract ArenaT is ERC721, Ownable{
     mintableFights = !mintableFights;
   }
 
+  function calculateReward(uint16 you, uint16 enemy) external view returns(uint) {
+  uint totalReward = baseReward;
   
+  if (fighters[you].power < fighters[enemy].power) {
+      uint dif = fighters[enemy].power - fighters[you].power;
+      totalReward += dif.div(5);  // +20% of power difference
+    }
+
+    if (fighters[you].race == Race.Humans) {
+      totalReward = totalReward.mul(12).div(10);
+    }
+
+  return totalReward;
+ }
 }

@@ -20,10 +20,10 @@ contract Arena is ERC721, Ownable, ReentrancyGuard{
   using Calculate for uint;
   VRFv2Consumer vrf;
   ArenaCoin arenaCoin;
-  uint256 public baseAward = 10000;
+  uint256 public baseReward = 10000;
   uint256 baseMintCost = 500000; // + 0.1% per minted
   uint256 legendaryMintCost = 2000000; // 2mln
-  uint256 restorationCost;
+  uint256 restorationCost = 20000;
   uint16 constant MAX_COUNT  = 30000;
   uint16 constant MAX_LEGENDARY = 1000;
   uint16 public totalSupply;
@@ -58,7 +58,7 @@ contract Arena is ERC721, Ownable, ReentrancyGuard{
   mapping (uint256 => uint16) requestsToId;
   mapping (uint256 => FightParams) requestsToFight;
   mapping (uint16 => Fighter) fighters;
-
+  mapping (uint16 => mapping(uint16 => bool)) challenges;
   enum Race { Orcs, Dragons, Elves, Humans}
 
   modifier onlyRNG() {
@@ -80,20 +80,32 @@ contract Arena is ERC721, Ownable, ReentrancyGuard{
     require(fighters[_id].owner == msg.sender, 'Not owner');
   }
 
-  function fight(uint16 fighter1Id, uint16 fighter2Id) external {
+  function challenge(uint16 yourFighter, uint16 opponent) external onlyFighterOwner(yourFighter) {
+    require(fighters[opponent].owner != msg.sender, 'Self fight');
+    require(arenaCoin.transferFrom(msg.sender, address(this), 8000), 'TX failed');
+    challenges[opponent][yourFighter] = true;
+  }
+
+  function applyChallenge(uint16 yourFighter, uint16 opponent) external onlyFighterOwner(yourFighter) {
+    require(challenges[yourFighter][opponent] == true, 'No challenge');
+    challenges[yourFighter][opponent] == false;
+    arenaCoin.transferFrom(address(this), msg.sender, 7000);
+    fight(yourFighter, opponent);
+  }
+
+  function fight(uint16 fighter1Id, uint16 fighter2Id) private {
     require(mintableFights, "Can not access mint-fights"); // Move to mintFights
     require(fighters[fighter1Id].stamina>0, 'Stamina1');
     require(fighters[fighter2Id].stamina>0, 'Stamina2');
     require(fighters[fighter1Id].stamina > 0 && fighters[fighter2Id].stamina > 0, "Fighters have no stamina");
-    Fighter memory fighter1 = fighters[fighter1Id];
-    Fighter memory fighter2 = fighters[fighter2Id];
-    require(fighter1.owner != fighter2.owner, "Self fights aren't allowed");
+    require(fighters[fighter1Id].owner != fighters[fighter2Id].owner, "Self fights aren't allowed");
+
     fighters[fighter1Id].stamina -= 1;
     fighters[fighter2Id].stamina -= 1;
     
 
     uint256 requestId = vrf.requestRandomWords(); // comment when debug
-    requestsToFight[requestId] = FightParams(fighter1, fighter2);
+    requestsToFight[requestId] = FightParams(fighters[fighter1Id], fighters[fighter2Id]);
 
   
   }
@@ -205,7 +217,7 @@ contract Arena is ERC721, Ownable, ReentrancyGuard{
       uint8 _hits) 
       private 
     {
-    uint256 totalAward = baseAward;
+    uint256 totalReward = baseReward;
     Fighter memory winner = fighters[_winner];
     Fighter memory loser = fighters[_loser];
     fighters[_winner].wins += 1;
@@ -214,17 +226,17 @@ contract Arena is ERC721, Ownable, ReentrancyGuard{
     uint power2 = loser.power;
     if(power1 < power2 ) {
       uint dif = power2 - power1;
-      totalAward += dif.div(5);  // +20% of power difference
+      totalReward += dif.div(5);  // +20% of power difference
     }
     
-    totalAward = totalAward + totalAward.mul(10 - _hits).div(10);
+    totalReward = totalReward + totalReward.mul(10 - _hits).div(10);
 
     if (winner.race == Race.Humans) {
-      totalAward = totalAward.mul(12).div(10);
+      totalReward = totalReward.mul(12).div(10);
     }
     
     // For mintableFights
-    arenaCoin.mint(winner.owner, totalAward);
+    arenaCoin.mint(winner.owner, totalReward);
 
   }
 
@@ -364,5 +376,19 @@ contract Arena is ERC721, Ownable, ReentrancyGuard{
   }
   function returnWarrior( uint16 id) public view returns(Fighter memory) {
      return fighters[id];
+ }
+ function calculateReward(uint16 you, uint16 enemy) external view returns(uint) {
+  uint totalReward = baseReward;
+  
+  if (fighters[you].power < fighters[enemy].power) {
+      uint dif = fighters[enemy].power - fighters[you].power;
+      totalReward += dif.div(5);  // +20% of power difference
+    }
+
+    if (fighters[you].race == Race.Humans) {
+      totalReward = totalReward.mul(12).div(10);
+    }
+
+  return totalReward;
  }
 }

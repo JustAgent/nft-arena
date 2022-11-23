@@ -46,16 +46,22 @@ describe("Arena", function () {
       const rnd = await randomBN();
       const rnd2 = await randomBN();
       const rnd3 = await randomBN();
+      const rnd4 = await randomBN();
+      const rnd5 = await randomBN();
 
       await arena.toggleMintableFights();
       await arena.mintFighter(owner.address, rnd);
-      await arena.mintFighter(acc1.address, rnd2);
-      expect(await arena.totalSupply()).to.eq(2);
-      expect(await arena.ownerOf(2)).to.eq(acc1.address);
-      console.log("FIGHT");
-      await arena.fight(1, 2);
-      console.log("FIGHT2");
-      await arena._fight(3, BigNumber.from(rnd3));
+      await arena.mintFighter(owner.address, rnd);
+      await arena.mintFighter(acc1.address, rnd3);
+      await arena.mintFighter(acc1.address, rnd4);
+      await arena.mintFighter(acc1.address, rnd5);
+      expect(await arena.totalSupply()).to.eq(5);
+      expect(await arena.ownerOf(3)).to.eq(acc1.address);
+      await arena.challenge(1, 3);
+      await arena.connect(acc1).applyChallenge(3, 1);
+      await arena.restoreStamina(1, 20000);
+      const warrior = await arena.returnWarrior(1);
+      console.log(warrior.stamina);
     });
   });
 
