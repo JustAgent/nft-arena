@@ -20,15 +20,15 @@
 //   using Calculate for uint;
 //   VRFv2Consumer vrf;
 //   ArenaCoin arenaCoin;
-//   uint256 baseAward = 10000;
+//   uint256 public baseAward = 10000;
 //   uint256 baseMintCost = 500000; // + 0.1% per minted
 //   uint256 legendaryMintCost = 2000000; // 2mln
 //   uint256 restorationCost;
 //   uint16 constant MAX_COUNT  = 30000;
 //   uint16 constant MAX_LEGENDARY = 1000;
-//   uint16 totalSupply;
-//   uint16 totalLegendSupply;
-//   bool mintableFights;
+//   uint16 public totalSupply;
+//   uint16 public totalLegendSupply;
+//   bool public mintableFights;
   
 //   struct Fighter {
 //     address owner;
@@ -171,7 +171,7 @@
 //     }
 //     // dragon
 
-//     _rewarding(WINNER, LOSER, i);
+//     _rewarding(WINNER, LOSER, i-1);
 
 
 //   }

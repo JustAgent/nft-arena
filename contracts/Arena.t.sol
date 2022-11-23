@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 pragma experimental ABIEncoderV2;
 // Uncomment this line to use console.log
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -18,15 +18,15 @@ contract Arena is ERC721, Ownable{
   using Calculate for uint;
   VRFv2Consumer vrf;
   ArenaCoin arenaCoin;
-  uint256 baseAward = 10000;
+  uint256 public baseAward = 10000;
   uint256 baseMintCost = 500000; // + 0.1% per minted
   uint256 legendaryMintCost = 2000000; // 2mln
   uint256 restorationCost;
   uint16 constant MAX_COUNT  = 30000;
   uint16 constant MAX_LEGENDARY = 1000;
-  uint16 totalSupply;
-  uint16 totalLegendSupply;
-  bool mintableFights;
+  uint16 public totalSupply;
+  uint16 public totalLegendSupply;
+  bool public mintableFights;
   
   struct Fighter {
     address owner;
@@ -172,8 +172,8 @@ contract Arena is ERC721, Ownable{
       }
     }
     // dragon
-
-    _rewarding(WINNER, LOSER, i);
+    console.log(111);
+    _rewarding(WINNER, LOSER, i-1);
 
 
   }
@@ -197,9 +197,12 @@ contract Arena is ERC721, Ownable{
       uint dif = power2 - power1;
       totalAward += dif.div(5);  // +20% of power difference
     }
-    
-    totalAward = totalAward + totalAward.mul(10 - _hits);
+    console.log(221);
+    console.log(totalAward);
+    console.log(_hits);
 
+    totalAward = totalAward + totalAward.mul(10 - _hits);
+    console.log(223);
     if (winner.race == Race.Humans) {
       totalAward = totalAward.mul(12).div(10);
     }
