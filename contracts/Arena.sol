@@ -164,8 +164,8 @@
 //       }
 
 //       //Step 2
-//       int damage2 = int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
-//         Calculate.calculateAgility(randomWord, i, 1, slower.agility)) - int24(slower.armor);
+//       int damage2 = int( Calculate.calculateHP(slower.damage, randomWord, i, 6, 3) * 
+//         Calculate.calculateAgility(randomWord, i, 4, faster.agility)) - int24(faster.armor);
 //       if (damage2< 0 ) {
 //         damage2 = 0;
 //       }

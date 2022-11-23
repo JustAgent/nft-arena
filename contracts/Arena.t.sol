@@ -144,14 +144,13 @@ contract Arena is ERC721, Ownable{
       console.log("HP1");
       console.log(uint(hp1));
       console.log("HP2");
-
       console.log(uint(hp2));
       if(hp1 <= 0 || hp2 <= 0) {
         break;
       }
       //Step 1
       int damage1 = int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
-        Calculate.calculateAgility(randomWord, i, 1, slower.agility)) - int24(slower.armor);
+        Calculate.calculateAgility(randomWord, i, 1, slower.agility)) ;
       if (damage1< 0 ) {
         damage1 = 0;
       }
@@ -165,8 +164,8 @@ contract Arena is ERC721, Ownable{
       }
 
       //Step 2
-      int damage2 = int( Calculate.calculateHP(faster.damage, randomWord, i, 6, 0) * 
-        Calculate.calculateAgility(randomWord, i, 1, slower.agility)) - int24(slower.armor);
+      int damage2 = int( Calculate.calculateHP(slower.damage, randomWord, i, 6, 3) * 
+        Calculate.calculateAgility(randomWord, i, 4, faster.agility));
       if (damage2< 0 ) {
         damage2 = 0;
       }
@@ -180,6 +179,11 @@ contract Arena is ERC721, Ownable{
       }
       i++;
     }
+      console.log("HP1");
+      console.log(uint(hp1));
+      console.log("HP2");
+      console.log(uint(hp2));
+      console.log(uint(i));
     // If its draw
     if (WINNER == 0) {
       if (hp1 > hp2) {
